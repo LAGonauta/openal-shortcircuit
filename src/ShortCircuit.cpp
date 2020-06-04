@@ -1,10 +1,12 @@
+#include <cstdlib>
+
 #include "ShortCircuit.hpp"
 
 namespace Short
 {
     Circuit::Circuit()
     {
-        Init();
+        Init(std::getenv("SC_OAL_LIBRARY_BINARY_PATH"));
     }
 
     Circuit::~Circuit()
@@ -15,7 +17,7 @@ namespace Short
         }
     }
 
-    void Circuit::Init(char* path)
+    void Circuit::Init(const char* path)
     {
         if (path)
         {

@@ -10,7 +10,7 @@ namespace Short
 private:
         HINSTANCE library_handle = nullptr;
 
-        void Init(char* path = nullptr);
+        void Init(const char* path = nullptr);
 
 public:
         Circuit();
