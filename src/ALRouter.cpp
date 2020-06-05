@@ -129,6 +129,7 @@ DLL_PUBLIC ALboolean DLL_ENTRY alIsExtensionPresent(const ALchar *extname)
     return short_.functions.alIsExtensionPresent(extname);
 }
 
+ALenum last_model = OpenALEnum::AL_NONE;
 DLL_PUBLIC void DLL_ENTRY alSourcei(ALuint source, ALenum param, ALint value)
 {
     if (is_xfi)
@@ -140,7 +141,13 @@ DLL_PUBLIC void DLL_ENTRY alSourcei(ALuint source, ALenum param, ALint value)
                 {
                     std::cout << "Using alSourcei: " << source << " : " << param << " : " << DistanceModelToName(value) << std::endl;
                 }
-                alDistanceModel(value); // set global
+
+                if (value != OpenALEnum::AL_NONE && value != last_model)
+                {
+                    last_model = value;
+                    alDistanceModel(value); // set global
+                }
+                
                 return;
         }
     }
