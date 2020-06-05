@@ -23,8 +23,6 @@ set(SOURCES
     src/ShortCircuitedALCMethods.cpp
     src/Utils.cpp
     src/Global.cpp
-    src/Vector3.cpp
-    src/SourceDistanceModelManager.cpp
 )
 
 add_library(openal-shortcircuit SHARED ${SOURCES})
