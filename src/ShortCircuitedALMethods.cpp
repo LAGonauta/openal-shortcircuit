@@ -20,7 +20,6 @@
 // DLL_PUBLIC void DLL_ENTRY alGetListeneri(ALenum param, ALint *value) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alGetListener3i(ALenum param, ALint *value1, ALint *value2, ALint *value3) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alGetListeneriv(ALenum param, ALint *values) { short_.functions.alDopplerFactor(value) };
-// DLL_PUBLIC void DLL_ENTRY alGenSources(ALsizei n, ALuint *sources) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC ALboolean DLL_ENTRY alIsSource(ALuint source) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alSourcefv(ALuint source, ALenum param, const ALfloat *values) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alSource3i(ALuint source, ALenum param, ALint value1, ALint value2, ALint value3) { short_.functions.alDopplerFactor(value) };

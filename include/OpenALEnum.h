@@ -2,6 +2,7 @@
 
 namespace OpenALEnum
 {
+    constexpr int AL_NONE = 0;
     constexpr int AL_SOURCE_RELATIVE = 0x202;
     constexpr int AL_CONE_INNER_ANGLE = 0x1001;
     constexpr int AL_CONE_OUTER_ANGLE = 0x1002;

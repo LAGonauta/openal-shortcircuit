@@ -10,24 +10,20 @@
 #include "OpenALEnum.h"
 #include "Utils.hpp"
 
+#include "SourceDistanceModelManager.hpp"
+
 extern Short::Circuit short_;
 extern bool is_xfi;
-struct distModelConfig
+
+SourceDistanceModelManager x_fi_workaround;
+
+auto global_distance_model = OpenALEnum::AL_INVERSE_DISTANCE_CLAMPED;
+DLL_PUBLIC void DLL_ENTRY alDistanceModel(ALenum distanceModel)
 {
-    ALenum type = OpenALEnum::AL_INVERSE_DISTANCE_CLAMPED;
-    float custom_gain = 1.0f;
-    float max_distance;
-    float ref_distance;
-    bool source_relative = false;
+    global_distance_model = distanceModel;
+    short_.functions.alDistanceModel(distanceModel);
 };
-struct
-{
-    std::unordered_map<ALuint, distModelConfig> source_map;
-    bool emulate_source_distance_model = false;
-} x_fi_workaround;
 
-
-// DLL_PUBLIC void DLL_ENTRY alDistanceModel(ALenum distanceModel) { short_.functions.alDistanceModel(distanceModel) };
 DLL_PUBLIC void DLL_ENTRY alEnable(ALenum capability)
 {
     if (is_xfi)
@@ -35,8 +31,15 @@ DLL_PUBLIC void DLL_ENTRY alEnable(ALenum capability)
         switch (capability)
         {
             case OpenALEnum::AL_SOURCE_DISTANCE_MODEL:
-                x_fi_workaround.emulate_source_distance_model = true;
-                // enable manual distance/gain control
+                x_fi_workaround.Enable();
+                x_fi_workaround.ForEachSource([](std::pair<ALuint, SourceSettings> source)
+                {
+                    if (source.second.type != global_distance_model)
+                    {
+                        // disable OpenAL's native attenuation for this source
+                    }
+                    return;
+                });
                 return;
         }
     }
@@ -51,8 +54,15 @@ DLL_PUBLIC void DLL_ENTRY alDisable(ALenum capability)
         switch (capability)
         {
             case OpenALEnum::AL_SOURCE_DISTANCE_MODEL:
-                x_fi_workaround.emulate_source_distance_model = false;
-                // disable manual distance/gain control
+                x_fi_workaround.Disable();
+                x_fi_workaround.ForEachSource([](std::pair<ALuint, SourceSettings> source)
+                {
+                    if (source.second.type != global_distance_model)
+                    {
+                        // enable OpenAL's native attenuation for this source
+                    }
+                    return;
+                });
                 return;
         }
     }
@@ -67,16 +77,22 @@ DLL_PUBLIC ALboolean DLL_ENTRY alIsEnabled(ALenum capability)
         switch (capability)
         {
             case OpenALEnum::AL_SOURCE_DISTANCE_MODEL:
-                return x_fi_workaround.emulate_source_distance_model;
+                return x_fi_workaround.IsEnabled();
         }
     }
     
     return short_.functions.alIsEnabled(capability);
 }
 
+DLL_PUBLIC void DLL_ENTRY alGenSources(ALsizei n, ALuint *sources)
+{
+    short_.functions.alGenSources(n, sources);
+    if (is_xfi) for (size_t i = 0; i < n; ++i) x_fi_workaround.AttachSource(sources[i]);
+}
+
 DLL_PUBLIC void DLL_ENTRY alDeleteSources(ALsizei n, const ALuint* sources)
 {
-    if (is_xfi) for (size_t i = 0; i < n; ++i) x_fi_workaround.source_map.erase(sources[i]);
+    if (is_xfi) for (size_t i = 0; i < n; ++i) x_fi_workaround.DettachSource(sources[i]);
     return short_.functions.alDeleteSources(n, sources);
 }
 
@@ -131,25 +147,42 @@ DLL_PUBLIC ALboolean DLL_ENTRY alIsExtensionPresent(const ALchar *extname)
     return short_.functions.alIsExtensionPresent(extname);
 }
 
-// DLL_PUBLIC void DLL_ENTRY alListener3f(ALenum param, ALfloat value1, ALfloat value2, ALfloat value3) { short_.functions.alListener3f(value) };
-// DLL_PUBLIC void DLL_ENTRY alSource3f(ALuint source, ALenum param, ALfloat value1, ALfloat value2, ALfloat value3) { short_.functions.alDopplerFactor(value) };
+DLL_PUBLIC void DLL_ENTRY alListener3f(ALenum param, ALfloat value1, ALfloat value2, ALfloat value3)
+{
+    if (is_xfi && param == OpenALEnum::AL_POSITION)
+    {
+        x_fi_workaround.SetListenerPosition(Vector3 { value1, value2, value3 });
+    }
+        
+    short_.functions.alListener3f(param, value1, value2, value3);
+}
+
+DLL_PUBLIC void DLL_ENTRY alSource3f(ALuint source, ALenum param, ALfloat value1, ALfloat value2, ALfloat value3)
+{
+    if (is_xfi && param == OpenALEnum::AL_POSITION)
+    {
+        x_fi_workaround.ForSource(source, [=](SourceSettings& settings) { settings.position = Vector3 { value1, value2, value3 }; });
+    }
+        
+    short_.functions.alSource3f(source, param, value1, value2, value3);
+}
+
 DLL_PUBLIC void DLL_ENTRY alSourcei(ALuint source, ALenum param, ALint value)
 {
     if (is_xfi)
     {
         switch (param)
         {
-            case OpenALEnum::AL_SOURCE_DISTANCE_MODEL:
             case OpenALEnum::AL_DISTANCE_MODEL:
+                x_fi_workaround.ForSource(source, [=] (SourceSettings& settings)
+                {
+                    settings.use_workaround = global_distance_model != value;
+                    settings.type = value;
+                });
                 break;
             case OpenALEnum::AL_SOURCE_RELATIVE:
                 {
-                    auto src = x_fi_workaround.source_map.find(source);
-                    if (src != source_map.end())
-                    {
-                        src->second.source_relative = value;
-                    }
-                    // this will be hard. TODO: Update manual source gain.
+                    x_fi_workaround.ForSource(source, [=] (SourceSettings& settings) { settings.source_relative = value; });
                     break;
                 }
         }
@@ -171,17 +204,82 @@ DLL_PUBLIC void DLL_ENTRY alSourceiv(ALuint source, ALenum param, const ALint *v
 }
 
 // Hook for: AL_GAIN, AL_MIN_GAIN, AL_MAX_GAIN, AL_MAX_DISTANCE, AL_ROLLOFF_FACTOR, AL_REFERENCE_DISTANCE when emulating
-// DLL_PUBLIC void DLL_ENTRY alSourcef(ALuint source, ALenum param, ALfloat value) { short_.functions.alDopplerFactor(value) };
+DLL_PUBLIC void DLL_ENTRY alSourcef(ALuint source, ALenum param, ALfloat value)
+{
+    bool using_workaround = false;
+    if (is_xfi)
+    {
+        switch (param)
+        {
+            case OpenALEnum::AL_GAIN:
+                    x_fi_workaround.ForSource(source, [&] (SourceSettings& settings)
+                    {
+                        settings.additional_gain = value;
+                        using_workaround = settings.use_workaround;
+                    });
+                    break;
+            case OpenALEnum::AL_MIN_GAIN:
+                    // x_fi_workaround.ForSource(source, [&] (SourceSettings& settings)
+                    // {
+                    //     settings.additional_gain = value;
+                    //     using_workaround = settings.use_workaround;
+                    // });
+                    break;
+            case OpenALEnum::AL_MAX_GAIN:
+                    // x_fi_workaround.ForSource(source, [&] (SourceSettings& settings)
+                    // {
+                    //     settings.additional_gain = value;
+                    //     using_workaround = settings.use_workaround;
+                    // });
+                    break;
+            case OpenALEnum::AL_MAX_DISTANCE:
+                    x_fi_workaround.ForSource(source, [&] (SourceSettings& settings)
+                    {
+                        settings.max_distance = value;
+                        using_workaround = settings.use_workaround;
+                    });
+                    break;
+            case OpenALEnum::AL_REFERENCE_DISTANCE:
+                    x_fi_workaround.ForSource(source, [&] (SourceSettings& settings)
+                    {
+                        settings.ref_distance = value;
+                        using_workaround = settings.use_workaround;
+                    });
+                    break;
+            case OpenALEnum::AL_ROLLOFF_FACTOR:
+                    x_fi_workaround.ForSource(source, [&] (SourceSettings& settings)
+                    {
+                        settings.rolloff_factor = value;
+                        using_workaround = settings.use_workaround;
+                    });
+                    break;
+        }
+    }
 
-// Hook for: ALPOSITION when emulating
-// DLL_PUBLIC void DLL_ENTRY alSourcefv(ALuint source, ALenum param, const ALfloat *values) { short_.functions.alDopplerFactor(value) };
+    if (!using_workaround)
+    {
+        short_.functions.alSourcef(source, param, value);
+    }
+}
+
+// Hook for: AL_POSITION when emulating
+DLL_PUBLIC void DLL_ENTRY alSourcefv(ALuint source, ALenum param, const ALfloat *values)
+{
+    if (is_xfi && param == OpenALEnum::AL_POSITION) x_fi_workaround.ForSource(source, [=](SourceSettings& settings) { settings.position = Vector3 { values[0], values[1], values[2] }; });
+    short_.functions.alSourcefv(source, param, values);
+}
 
 DLL_PUBLIC void* DLL_ENTRY alGetProcAddress(const ALchar *fname)
 {
-    if (strncmp(fname, "alGetString", 12) == 0) return reinterpret_cast<void*>(&alGetString);
-    if (strncmp(fname, "alIsExtensionPresent", 21) == 0) return reinterpret_cast<void*>(&alIsExtensionPresent);
-    if (strncmp(fname, "alSourcei", 10) == 0) return reinterpret_cast<void*>(&alSourcei);
-    if (strncmp(fname, "alSourceiv", 11) == 0) return reinterpret_cast<void*>(&alSourceiv);
-    // if (strncmp(fname, "alGetError", 21) == 0) return reinterpret_cast<void*>(&alGetError);
+    if (is_xfi)
+    {
+        if (strncmp(fname, "alGetString", 12) == 0) return reinterpret_cast<void*>(&alGetString);
+        if (strncmp(fname, "alIsExtensionPresent", 21) == 0) return reinterpret_cast<void*>(&alIsExtensionPresent);
+        if (strncmp(fname, "alSourcei", 10) == 0) return reinterpret_cast<void*>(&alSourcei);
+        if (strncmp(fname, "alSourcef", 10) == 0) return reinterpret_cast<void*>(&alSourcef);
+        if (strncmp(fname, "alSourceiv", 11) == 0) return reinterpret_cast<void*>(&alSourceiv);
+        // if (strncmp(fname, "alGetError", 21) == 0) return reinterpret_cast<void*>(&alGetError);
+    }
+
     return short_.functions.alGetProcAddress(fname);
 }
