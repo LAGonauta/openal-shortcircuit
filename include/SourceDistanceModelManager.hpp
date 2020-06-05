@@ -12,8 +12,8 @@ struct SourceSettings
     bool use_workaround = true; // change to default false later;
     ALenum type = OpenALEnum::AL_INVERSE_DISTANCE_CLAMPED;
     ALfloat additional_gain = 1.0f;
-    ALfloat max_distance;
-    ALfloat ref_distance;
+    ALfloat max_distance = std::numeric_limits<float>::max();
+    ALfloat ref_distance = 1.0f;
     ALfloat rolloff_factor = 1.0f;
     Vector3 position{};
 };

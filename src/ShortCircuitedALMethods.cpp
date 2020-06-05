@@ -9,7 +9,6 @@
 // DLL_PUBLIC ALint DLL_ENTRY alGetInteger(ALenum param) { short_.functions.alGetInteger(value) };
 // DLL_PUBLIC ALfloat DLL_ENTRY alGetFloat(ALenum param) { short_.functions.alGetFloat(value) };
 // DLL_PUBLIC ALdouble DLL_ENTRY alGetDouble(ALenum param) { short_.functions.alGetDouble(value) };
-// DLL_PUBLIC void DLL_ENTRY alListenerf(ALenum param, ALfloat value) { short_.functions.alListenerf(value) };
 // DLL_PUBLIC void DLL_ENTRY alListenerfv(ALenum param, const ALfloat *values) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alListeneri(ALenum param, ALint value) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alListener3i(ALenum param, ALint value1, ALint value2, ALint value3) { short_.functions.alDopplerFactor(value) };
