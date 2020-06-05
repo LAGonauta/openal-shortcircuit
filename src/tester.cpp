@@ -14,6 +14,13 @@ int main (int argc, char **argv)
     ext = alGetString(OpenALEnum::AL_EXTENSIONS);
     std::cout << std::string(ext) << std::endl;
 
+    alSourcef(1, OpenALEnum::AL_ROLLOFF_FACTOR, 1.0f);
+    alSourcei(1, OpenALEnum::AL_DISTANCE_MODEL, OpenALEnum::AL_INVERSE_DISTANCE_CLAMPED);
+    alSourcei(1, OpenALEnum::AL_DISTANCE_MODEL, OpenALEnum::AL_NONE);
+    alSourcei(1, OpenALEnum::AL_DISTANCE_MODEL, OpenALEnum::AL_INVERSE_DISTANCE_CLAMPED);
+    alSourcei(1, OpenALEnum::AL_DISTANCE_MODEL, OpenALEnum::AL_NONE);
+    alSourcef(1, OpenALEnum::AL_ROLLOFF_FACTOR, 1.0f);
+
     alcMakeContextCurrent(nullptr);
     alcDestroyContext(context);
     alcCloseDevice(device);

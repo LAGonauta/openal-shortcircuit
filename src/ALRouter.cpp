@@ -2,9 +2,8 @@
 #include <string>
 #include <array>
 #include <vector>
-#include <unordered_map>
 #include <cstring>
-#include <iostream>
+#include <unordered_map>
 
 #include "ShortCircuit.hpp"
 #include "Router.hpp"
@@ -15,7 +14,7 @@ extern Short::Circuit short_;
 extern bool is_xfi;
 
 bool source_distance_model = false;
-
+std::unordered_map<ALuint, ALfloat> sources_no_attenuation;
 
 DLL_LOCAL std::string DistanceModelToName(ALenum model)
 {
@@ -129,6 +128,32 @@ DLL_PUBLIC ALboolean DLL_ENTRY alIsExtensionPresent(const ALchar *extname)
     return short_.functions.alIsExtensionPresent(extname);
 }
 
+DLL_PUBLIC void DLL_ENTRY alDeleteSources(ALsizei n, const ALuint* sources)
+{
+    for (size_t i = 0; i < n; ++i) sources_no_attenuation.erase(sources[i]);
+    short_.functions.alDeleteSources(n, sources);
+}
+
+DLL_PUBLIC void DLL_ENTRY alSourcef(ALuint source, ALenum param, ALfloat value)
+{
+    if (is_xfi)
+    {
+        switch (param)
+        {
+            case OpenALEnum::AL_ROLLOFF_FACTOR:
+                auto s = sources_no_attenuation.find(source);
+                if (s != sources_no_attenuation.end())
+                {
+                    s->second = value; // save AL_ROLLOFF_FACTOR if source is to be reutilized after having distance model AL_NONE
+                    return; // force AL_ROLLOFF_FACTOR to be zero if the source should not be attenuated
+                }
+                break;
+        }
+    }
+
+    short_.functions.alSourcef(source, param, value);
+}
+
 ALenum last_model = OpenALEnum::AL_NONE;
 DLL_PUBLIC void DLL_ENTRY alSourcei(ALuint source, ALenum param, ALint value)
 {
@@ -137,15 +162,26 @@ DLL_PUBLIC void DLL_ENTRY alSourcei(ALuint source, ALenum param, ALint value)
         switch (param)
         {
             case OpenALEnum::AL_DISTANCE_MODEL:
-                if (value != OpenALEnum::AL_LINEAR_DISTANCE)
-                {
-                    std::cout << "Using alSourcei: " << source << " : " << param << " : " << DistanceModelToName(value) << std::endl;
-                }
-
                 if (value != OpenALEnum::AL_NONE && value != last_model)
                 {
                     last_model = value;
-                    alDistanceModel(value); // set global
+                    alDistanceModel(value); // set globally
+                }
+
+                if (value == OpenALEnum::AL_NONE)
+                {
+                    sources_no_attenuation.insert(std::make_pair(source, 0.0f));
+                    short_.functions.alSourcef(source, OpenALEnum::AL_ROLLOFF_FACTOR, 0.0f); // force no attenuation
+                }
+                else
+                {
+                    // Re-add attenuation if source is reutilized
+                    auto vl = sources_no_attenuation.find(source);
+                    if (vl != sources_no_attenuation.end())
+                    {
+                        short_.functions.alSourcef(source, OpenALEnum::AL_ROLLOFF_FACTOR, vl->second);
+                        sources_no_attenuation.erase(source);
+                    }
                 }
                 
                 return;
@@ -166,6 +202,7 @@ DLL_PUBLIC void* DLL_ENTRY alGetProcAddress(const ALchar *fname)
         else if (strncmp(fname, "alDisable", 10) == 0) return reinterpret_cast<void*>(&alDisable);
         else if (strncmp(fname, "alIsEnabled", 12) == 0) return reinterpret_cast<void*>(&alIsEnabled);
         else if (strncmp(fname, "alSourcei", 10) == 0) return reinterpret_cast<void*>(&alSourcei);
+        else if (strncmp(fname, "alSourcef", 10) == 0) return reinterpret_cast<void*>(&alSourcef);
     }
 
     return short_.functions.alGetProcAddress(fname);

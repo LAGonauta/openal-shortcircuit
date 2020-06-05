@@ -54,11 +54,9 @@
 // DLL_PUBLIC void DLL_ENTRY alGetBufferi(ALuint buffer, ALenum param, ALint *value) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alGetBuffer3i(ALuint buffer, ALenum param, ALint *value1, ALint *value2, ALint *value3) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alGetBufferiv(ALuint buffer, ALenum param, ALint *values) { short_.functions.alDopplerFactor(value) };
-// DLL_PUBLIC void DLL_ENTRY alSourcefv(ALuint source, ALenum param, const ALfloat *values)
 // DLL_PUBLIC void DLL_ENTRY alSource3f(ALuint source, ALenum param, ALfloat value1, ALfloat value2, ALfloat value3)
 // DLL_PUBLIC void DLL_ENTRY alListenerf(ALenum param, ALfloat value)
 // DLL_PUBLIC void DLL_ENTRY alListener3f(ALenum param, ALfloat value1, ALfloat value2, ALfloat value3)
 // DLL_PUBLIC ALenum DLL_ENTRY alGetEnumValue(const ALchar *ename)
 // DLL_PUBLIC ALenum DLL_ENTRY alGetError(void)
-// DLL_PUBLIC void DLL_ENTRY alDeleteSources(ALsizei n, const ALuint* sources)
 // DLL_PUBLIC void DLL_ENTRY alGenSources(ALsizei n, ALuint *sources)
