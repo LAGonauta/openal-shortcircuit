@@ -2,39 +2,34 @@
 
 #include "SourceDistanceModelManager.hpp"
 
-float SourceDistanceModelManager::CalculateFinalGain(ALuint source)
+float SourceDistanceModelManager::CalculateFinalGain(const SourceSettings& value)
 {
     if (!emulate_source_distance_model) return 1.0f;
 
-    auto val = source_map.find(source);
-    if (val != source_map.end())
+    auto distance = value.source_relative ? value.position.Length() : listener_position.CalculateDistance(value.position);
+    switch (value.type)
     {
-        auto& value = val->second;
-        auto distance = value.source_relative ? value.position.Length() : listener_position.CalculateDistance(value.position);
-        switch (value.type)
-        {
-            case OpenALEnum::AL_INVERSE_DISTANCE_CLAMPED:
-                distance = std::clamp(distance, value.ref_distance, value.max_distance);
-            case OpenALEnum::AL_INVERSE_DISTANCE:
-                return value.ref_distance / (value.ref_distance + value.rolloff_factor * (distance - value.ref_distance));
-                
-            case OpenALEnum::AL_LINEAR_DISTANCE:
-                distance = std::min(distance, value.max_distance);
-                return (1 - value.rolloff_factor * (distance - value.ref_distance) / (value.max_distance - value.ref_distance));
+        case OpenALEnum::AL_INVERSE_DISTANCE_CLAMPED:
+            distance = std::clamp(distance, value.ref_distance, value.max_distance);
+        case OpenALEnum::AL_INVERSE_DISTANCE:
+            return value.ref_distance / (value.ref_distance + value.rolloff_factor * (distance - value.ref_distance));
+            
+        case OpenALEnum::AL_LINEAR_DISTANCE:
+            distance = std::min(distance, value.max_distance);
+            return (1 - value.rolloff_factor * (distance - value.ref_distance) / (value.max_distance - value.ref_distance));
 
-            case OpenALEnum::AL_LINEAR_DISTANCE_CLAMPED:
-                distance = std::clamp(distance, value.ref_distance, value.max_distance);
-                return (1 - value.rolloff_factor * (distance - value.ref_distance) / (value.max_distance - value.ref_distance));
+        case OpenALEnum::AL_LINEAR_DISTANCE_CLAMPED:
+            distance = std::clamp(distance, value.ref_distance, value.max_distance);
+            return (1 - value.rolloff_factor * (distance - value.ref_distance) / (value.max_distance - value.ref_distance));
 
-            case OpenALEnum::AL_EXPONENT_DISTANCE_CLAMPED:
-                distance = std::clamp(distance, value.ref_distance, value.max_distance);
-            case OpenALEnum::AL_EXPONENT_DISTANCE:
-                return std::pow(distance / value.ref_distance, - value.rolloff_factor);
+        case OpenALEnum::AL_EXPONENT_DISTANCE_CLAMPED:
+            distance = std::clamp(distance, value.ref_distance, value.max_distance);
+        case OpenALEnum::AL_EXPONENT_DISTANCE:
+            return std::pow(distance / value.ref_distance, - value.rolloff_factor);
 
-            case OpenALEnum::AL_NONE:
-                return 1.0f;
-                break;
-        }
+        case OpenALEnum::AL_NONE:
+            return 1.0f;
+            break;
     }
 
     return 1.0f;

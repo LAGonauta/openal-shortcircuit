@@ -31,7 +31,7 @@ public:
 
     bool IsEnabled();
     
-    float CalculateFinalGain(ALuint source);
+    float CalculateFinalGain(const SourceSettings& source);
 
     void AttachSource(ALuint source);
     void DettachSource(ALuint source);

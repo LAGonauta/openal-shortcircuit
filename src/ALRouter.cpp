@@ -32,13 +32,14 @@ DLL_PUBLIC void DLL_ENTRY alEnable(ALenum capability)
         {
             case OpenALEnum::AL_SOURCE_DISTANCE_MODEL:
                 x_fi_workaround.Enable();
-                x_fi_workaround.ForEachSource([](std::pair<ALuint, SourceSettings> source)
+                x_fi_workaround.ForEachSource([](auto& source)
                 {
                     if (source.second.type != global_distance_model)
                     {
                         // disable OpenAL's native attenuation for this source
+                        short_.functions.alSourcef(source.first, OpenALEnum::AL_REFERENCE_DISTANCE, 1.0f);
+                        short_.functions.alSourcef(source.first, OpenALEnum::AL_MAX_DISTANCE, std::numeric_limits<float>::max());
                     }
-                    return;
                 });
                 return;
         }
@@ -55,13 +56,14 @@ DLL_PUBLIC void DLL_ENTRY alDisable(ALenum capability)
         {
             case OpenALEnum::AL_SOURCE_DISTANCE_MODEL:
                 x_fi_workaround.Disable();
-                x_fi_workaround.ForEachSource([](std::pair<ALuint, SourceSettings> source)
+                x_fi_workaround.ForEachSource([](auto& source)
                 {
                     if (source.second.type != global_distance_model)
                     {
                         // enable OpenAL's native attenuation for this source
+                        short_.functions.alSourcef(source.first, OpenALEnum::AL_REFERENCE_DISTANCE, source.second.ref_distance);
+                        short_.functions.alSourcef(source.first, OpenALEnum::AL_MAX_DISTANCE, source.second.max_distance);
                     }
-                    return;
                 });
                 return;
         }
@@ -152,6 +154,13 @@ DLL_PUBLIC void DLL_ENTRY alListener3f(ALenum param, ALfloat value1, ALfloat val
     if (is_xfi && param == OpenALEnum::AL_POSITION)
     {
         x_fi_workaround.SetListenerPosition(Vector3 { value1, value2, value3 });
+        x_fi_workaround.ForEachSource([&](auto& source_pair)
+        {
+            if (source_pair.second.use_workaround)
+            {
+                short_.functions.alSourcef(source_pair.first, OpenALEnum::AL_GAIN, x_fi_workaround.CalculateFinalGain(source_pair.second));
+            }
+        });
     }
         
     short_.functions.alListener3f(param, value1, value2, value3);
@@ -161,7 +170,11 @@ DLL_PUBLIC void DLL_ENTRY alSource3f(ALuint source, ALenum param, ALfloat value1
 {
     if (is_xfi && param == OpenALEnum::AL_POSITION)
     {
-        x_fi_workaround.ForSource(source, [=](SourceSettings& settings) { settings.position = Vector3 { value1, value2, value3 }; });
+        x_fi_workaround.ForSource(source, [&](SourceSettings& settings)
+        {
+            settings.position = Vector3 { value1, value2, value3 };
+            if (settings.use_workaround) short_.functions.alSourcef(source, OpenALEnum::AL_GAIN, x_fi_workaround.CalculateFinalGain(settings));
+        });
     }
         
     short_.functions.alSource3f(source, param, value1, value2, value3);
@@ -174,10 +187,16 @@ DLL_PUBLIC void DLL_ENTRY alSourcei(ALuint source, ALenum param, ALint value)
         switch (param)
         {
             case OpenALEnum::AL_DISTANCE_MODEL:
-                x_fi_workaround.ForSource(source, [=] (SourceSettings& settings)
+                x_fi_workaround.ForSource(source, [&] (SourceSettings& settings)
                 {
                     settings.use_workaround = global_distance_model != value;
                     settings.type = value;
+                    if (settings.type != global_distance_model && x_fi_workaround.IsEnabled())
+                    {
+                        // disable OpenAL's native attenuation for this source
+                        short_.functions.alSourcef(source, OpenALEnum::AL_REFERENCE_DISTANCE, 1.0f);
+                        short_.functions.alSourcef(source, OpenALEnum::AL_MAX_DISTANCE, std::numeric_limits<float>::max());
+                    }
                 });
                 break;
             case OpenALEnum::AL_SOURCE_RELATIVE:
