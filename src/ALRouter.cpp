@@ -9,12 +9,15 @@
 #include "Router.hpp"
 #include "OpenALEnum.h"
 #include "Utils.hpp"
+#include "XRamManager.hpp"
 
 extern Short::Circuit short_;
 extern bool is_xfi;
 
 bool source_distance_model = false;
 std::unordered_map<ALuint, ALfloat> sources_no_attenuation;
+
+XRamManager xram_manager;
 
 DLL_LOCAL std::string DistanceModelToName(ALenum model)
 {
@@ -191,6 +194,12 @@ DLL_PUBLIC void DLL_ENTRY alSourcei(ALuint source, ALenum param, ALint value)
     return short_.functions.alSourcei(source, param, value);
 }
 
+DLL_PUBLIC void DLL_ENTRY alGenBuffers(ALsizei n, ALuint *buffers)
+{
+    short_.functions.alGenBuffers(n, buffers);
+    if (is_xfi) xram_manager.SetXRamMode(n, buffers);
+}
+
 DLL_PUBLIC void* DLL_ENTRY alGetProcAddress(const ALchar *fname)
 {
     if (is_xfi)
@@ -203,6 +212,7 @@ DLL_PUBLIC void* DLL_ENTRY alGetProcAddress(const ALchar *fname)
         else if (strncmp(fname, "alIsEnabled", 12) == 0) return reinterpret_cast<void*>(&alIsEnabled);
         else if (strncmp(fname, "alSourcei", 10) == 0) return reinterpret_cast<void*>(&alSourcei);
         else if (strncmp(fname, "alSourcef", 10) == 0) return reinterpret_cast<void*>(&alSourcef);
+        else if (strncmp(fname, "alGenBuffers", 13) == 0) return reinterpret_cast<void*>(&alGenBuffers);
     }
 
     return short_.functions.alGetProcAddress(fname);

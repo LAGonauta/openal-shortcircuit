@@ -38,7 +38,6 @@
 // DLL_PUBLIC void DLL_ENTRY alSourcePause(ALuint source) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alSourceQueueBuffers(ALuint source, ALsizei nb, const ALuint *buffers) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alSourceUnqueueBuffers(ALuint source, ALsizei nb, ALuint *buffers) { short_.functions.alDopplerFactor(value) };
-// DLL_PUBLIC void DLL_ENTRY alGenBuffers(ALsizei n, ALuint *buffers);
 // DLL_PUBLIC void DLL_ENTRY alDeleteBuffers(ALsizei n, const ALuint *buffers) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC ALboolean DLL_ENTRY alIsBuffer(ALuint buffer) { short_.functions.alDopplerFactor(value) };
 // DLL_PUBLIC void DLL_ENTRY alBufferData(ALuint buffer, ALenum format, const ALvoid *data, ALsizei size, ALsizei freq) { short_.functions.alDopplerFactor(value) };

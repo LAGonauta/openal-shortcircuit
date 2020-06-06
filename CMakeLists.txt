@@ -23,6 +23,7 @@ set(SOURCES
     src/ShortCircuitedALCMethods.cpp
     src/Utils.cpp
     src/Global.cpp
+    src/XRamManager.cpp
 )
 
 add_library(openal-shortcircuit SHARED ${SOURCES})
