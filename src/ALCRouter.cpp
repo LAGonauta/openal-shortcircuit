@@ -1,17 +1,21 @@
 #include <algorithm>
 #include <string>
 #include <array>
-#include <vector>
 #include <cstdlib>
+#include <memory>
 
 #include "ShortCircuit.hpp"
 #include "Router.hpp"
 #include "OpenALEnum.h"
+#include "ALManager.hpp"
 
 #include "Utils.hpp"
 
-extern Short::Circuit short_;
-extern bool is_xfi;
+Short::Circuit short_;
+bool is_xfi = false;
+std::unordered_map<ALCcontext *, std::shared_ptr<ALManager>> al_map;
+
+void AlSetManager(ALManager* manager); // From ALRouter.cpp
 
 DLL_PUBLIC ALCdevice* DLL_ENTRY alcOpenDevice(const ALCchar *devicename)
 {
@@ -29,9 +33,28 @@ DLL_PUBLIC ALCboolean DLL_ENTRY alcMakeContextCurrent(ALCcontext *context)
     if (context && result)
     {
         auto renderer = short_.functions.alGetString(OpenALEnum::AL_RENDERER);
-        is_xfi = strstr(renderer, "X-Fi") != nullptr;
+        std::shared_ptr<ALManager> al_manager;
+        auto manager = al_map.find(context);
+        if (manager != al_map.end())
+        {
+            al_manager = manager->second;
+        }
+        else
+        {
+            al_manager = std::make_shared<ALManager>(&short_, strstr(renderer, "X-Fi") != nullptr);
+            al_map.emplace(std::make_pair(context, al_manager));
+        }
+
+        AlSetManager(al_manager.get());
+        is_xfi = al_manager->IsXFi();
     }
     return result;
+}
+
+DLL_PUBLIC void DLL_ENTRY alcDestroyContext(ALCcontext *context)
+{
+    al_map.erase(context);
+    return short_.functions.alcDestroyContext(context);
 }
 
 std::string alcGetStringExtension;

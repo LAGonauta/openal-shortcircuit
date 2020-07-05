@@ -2,26 +2,23 @@
 #include <cstring>
 
 #include "XRamManager.hpp"
-#include "ShortCircuit.hpp"
 
-extern Short::Circuit short_;
-
-typedef ALboolean (__cdecl *EAXSetBufferMode)(ALsizei n, ALuint *buffers, ALint value);
-typedef ALenum (__cdecl *EAXGetBufferMode)(ALuint buffer, ALint *value);
-
-static EAXSetBufferMode eaxSetBufferMode;
+XRamManager::XRamManager(Short::Circuit* short_)
+{
+    this->short_ = short_;
+}
 
 void XRamManager::SetXRamMode(ALsizei n, ALuint* buffers)
 {
     if (!initialized)
     {
-        if (short_.functions.alIsExtensionPresent("EAX-RAM"))
+        if (short_->functions.alIsExtensionPresent("EAX-RAM"))
         {
             can_use_xram = true;
-            xram_acessible = short_.functions.alGetEnumValue("AL_STORAGE_ACCESSIBLE");
+            xram_acessible = short_->functions.alGetEnumValue("AL_STORAGE_ACCESSIBLE");
             if (xram_acessible)
             {
-                eaxSetBufferMode = (EAXSetBufferMode)short_.functions.alGetProcAddress("EAXSetBufferMode");
+                eaxSetBufferMode = (EAXSetBufferMode)short_->functions.alGetProcAddress("EAXSetBufferMode");
                 if (eaxSetBufferMode)
                 {
                     auto e = std::getenv("SC_FORCE_XRAM");

@@ -31,6 +31,3 @@
 #else
  #define DLL_ENTRY
 #endif
-
-#define DLL_PUBLIC __attribute__ ((dllexport))
-#define DLL_LOCAL

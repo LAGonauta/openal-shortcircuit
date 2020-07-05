@@ -1,7 +1,7 @@
 #include "ShortCircuit.hpp"
 #include "Router.hpp"
 
-extern Short::Circuit short_;
+extern Short::Circuit short_; // From ALCRouter.cpp
 
 DLL_PUBLIC ALCcontext* DLL_ENTRY alcCreateContext(ALCdevice *device, const ALCint *attrlist)
 {
@@ -14,10 +14,6 @@ DLL_PUBLIC void DLL_ENTRY alcProcessContext(ALCcontext *context)
 DLL_PUBLIC void DLL_ENTRY alcSuspendContext(ALCcontext *context)
 {
     return short_.functions.alcSuspendContext(context);
-}
-DLL_PUBLIC void DLL_ENTRY alcDestroyContext(ALCcontext *context)
-{
-    return short_.functions.alcDestroyContext(context);
 }
 DLL_PUBLIC ALCcontext* DLL_ENTRY alcGetCurrentContext(void)
 {

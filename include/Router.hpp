@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Visibility.h"
+#include "OpenALAPI.h"
 
 #if defined(__cplusplus)
 extern "C" {

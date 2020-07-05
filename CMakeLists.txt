@@ -18,15 +18,17 @@ endif()
 set(SOURCES
     src/ShortCircuit.cpp
     src/ALRouter.cpp
+    src/ALManager.cpp
     src/ShortCircuitedALMethods.cpp
     src/ALCRouter.cpp
     src/ShortCircuitedALCMethods.cpp
     src/Utils.cpp
-    src/Global.cpp
     src/XRamManager.cpp
 )
 
 add_library(openal-shortcircuit SHARED ${SOURCES})
+
+add_definitions(-DBUILDING_DLL)
 
 if (MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
@@ -37,9 +39,11 @@ target_include_directories(openal-shortcircuit
         ${PROJECT_SOURCE_DIR}/include
 )
 
-add_executable(tester src/tester.cpp)
-target_include_directories(tester
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/include
-)
-target_link_libraries(tester openal-shortcircuit)
+if (BUILD_TESTER)
+    add_executable(tester src/tester.cpp)
+    target_include_directories(tester
+        PRIVATE
+            ${PROJECT_SOURCE_DIR}/include
+    )
+    target_link_libraries(tester openal-shortcircuit)
+endif()
