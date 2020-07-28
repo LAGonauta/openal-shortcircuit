@@ -3,6 +3,10 @@
 Library to allow one to use any OpenAL library in Minecraft.
 It also has some workarounds for the missing `AL_EXT_source_distance_model` extension on Creative's OpenAL when using hardware OpenAL on a X-Fi.
 
+# Using 
+
+Add `-Dorg.lwjgl.openal.libname="{path}/openal-shortcircuit.dll"` to your Minecraft Java launcher setting. For example: `-Dorg.lwjgl.openal.libname="c:/users/bob/downloads/openal-shortcircuit.dll`.
+
 # Configuring
 
 One can configure the library through environment variables.
